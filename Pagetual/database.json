@@ -1,0 +1,39 @@
+[
+  {
+    "data": {
+      "exampleUrl": "https://blog.mozilla.org/futurereleases/",
+      "insertBefore": "//nav[@class='nav-paging']",
+      "nextLink": "//li[@class='prev']//a",
+      "pageElement": "//article",
+      "url": "^https://blog\\.mozilla\\.org/futurereleases/(page/\\d+/)?$"
+    }
+  },
+  {
+    "data": {
+      "nextLink": "//*[@id='CategoryProducts']/table/tbody/tr/td[2]/table/tbody/tr/td/div/ul/li[9]/a",
+      "pageElement": "//*[@id='CategoryProducts']/div[4]/table",
+      "url": "^https://www.ecuagenera.com/"
+    }
+  },
+  {
+    "data": {
+      "nextLink": "//div[@class='page-numbers']/nav[1]/ul[@class='pagination pagination-lg']/li[@class='page-item']/a[@class='page-link ']",
+      "pageElement": "//div[@class='cards-container']",
+      "url": "^https://www.gaymaletube.com/"
+    }
+  },
+  {
+    "data": {
+      "nextLink": "//*[@id='list_videos_most_recent_videos_pagination']/a",
+      "pageElement": "//*[@id='list_videos_most_recent_videos_items']/*",
+      "url": "^https://analnoe-porno.net/"
+    }
+  },
+  {
+    "data": {
+      "nextLink": "//*[@id='content_div']/div[3]/a",
+      "pageElement": "//div[@class='search_results']/*",
+      "url": "^https://sxyprn.com/"
+    }
+  }
+]
