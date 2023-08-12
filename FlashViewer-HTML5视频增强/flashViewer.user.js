@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           flashViewer
 // @author         NLF & Hoothin
-// @description    围观Flash，增加 HTML5 视频速度与亮度调整
+// @description    Watch Flash, increase HTML5 video speed and adjust brightness
 // @version        1.2.1.8
 // @created        2013-12-27
 // @lastUpdated    2023-3-9
@@ -16,8 +16,8 @@
 // ==/UserScript==
 
 /*
-    本脚本用的部分高级特性：
-    feature: ie, firefox, chrome, opera
+    Some advanced features used in this script：
+    featuring: ie, firefox, chrome, opera
 
     MutationObserver: 11+, 14+, (18-26(WebKit), 27+), 15+
     JSON: 8+, 3.5+, 4+, 10.5+
@@ -42,73 +42,74 @@
 
         // 选项
         var prefs = {
-            // 是否允许按照一定规则重新初始化flash让你获得允许flash全屏，开关自动播放，允许跳转回主页观看等等功能
+            // Is it allowed to reinitialize flash according to certain rules, so that you can get flash in fullscreen, switch the automatic play, allow to jump back to the home page to watch, etc.
             allowReinitFlash: true,
-            // 浮动工具栏相关设置.
+            // Floating toolbar related settings.
             floatBar: {
-                // 按钮排列顺序'pop'(弹出视频),'reload'(重载视频),'close'(关闭视频然后显示占位符（点击占位符的关闭彻底移除视频）)
-                // 不想显示的按钮，就不要填，比如改成 ['pop','reload'] 之后 'close'按钮就不会显示了
+                // The order of the buttons is 'pop' (popup video), 'reload' (reload video), 'close' (close the video and then display the placeholder (click the close of the placeholder to completely remove the video))
+                // Do not fill in the buttons that you do not want to display, for example, after changing to ['pop','reload'], the 'close' button will not be displayed.
                 butonOrder: ['pop','reload','close'],
-                // 浮动工具栏显示延时.单位(毫秒)
+                // Floating toolbar display delay. Unit (milliseconds)
                 showDelay: 366,
-                // 取值为: 'top left'(左上角) 或者 'top right'(右上角) 'bottom right'(右下角) 'bottom left'(左下角);
+                // Values are: 'top left'(top left corner) or 'top right'(top right corner) 'bottom right'(bottom right corner) 'bottom left'(bottom left corner);
                 position: 'top left',
-                //浮动工具栏偏移.单位(像素)
+                //Floating toolbar offset. Unit (pixel)
                 offset: {
-                    // x轴偏移(正值,向右偏移,负值向左)
+                    // x-Axis offset (positive value, offset right, negative value left)
                     x: -15,
-                    // y轴偏移(正值,向下,负值向上)
+                    // y-axis offset (positive value, down, negative value up)
                     y: -25,
                 },
-                // 当摸到的视频大于等于设定尺寸的时候才显示悬浮工具栏（用来过滤一些非视频类的flash插件）
+                // When the touched video is greater than or equal to the set size, the floating toolbar will be displayed (used to filter some non-video flash plugins)
                 minSizeLimit: {
                     height: 100,
                     width: 100,
                 },
             },
-            // 弹出的视频相关设置
+            // Pop-up video related settings
             popVideo: {
-                // 弹出视频后默认关灯
+                // Turn off the light by default after the video pops up
                 lightOff: {
                     enabled: false,
-                    // 0.01-1.00之间，数字越大越暗。
+                    // 0.01-1.00 in between, the larger the number, the darker it is.
                     opacity: 0.95,
                 } ,
-                // 默认钉住，position fixed效果。
+                // Pinned by default, position fixed effect。
                 pin: false,
-                // 默认最大化
+                // Maximize by default
                 maximize: false,
             },
         };
 
 
-        // 按照规则重载object 和 embed标签引用的flash插件
+        // 按照The rule overloads the flash plugin referenced by the object and embed tags
         var rules = [
-            {name: '优酷外链',// 给这条规则取个名字，方便自己修改的时候方便
-                // 匹配youku外链播放器的正则表达式
+            {name: 'Youku external link', // Give this rule a name, which is convenient for you to modify
+                // A regular expression that matches players outside the youku chain
                 url: /^https?:\/\/(?:static|player)\.youku\.com\/.+/i,
-                // 是否让这条规则生效
+                // Whether to make this rule take effect
                 enabled: true,
-                // 不生效的页面，比如优酷自己的网站上引用的视频。
+                // Invalid pages, such as videos referenced on Youku's own website。
                 excludes: /^https?:\/\/(?:www|v)\.youku\.com\//i,
-                // 允许flash全屏['true'|'false']
-                // 如果你想外链的视频的全屏播放功能生效，请设置为'true'
+                // Allow flash fullscreen['true'|'false']
+                // If you want the fullscreen playback function of the external link video to take effect, please set it to 'true'
                 allowFullscreen: 'true',
-                // 允许脚本访问['sameDomain'|'never'|'always']
-                // 相关请看这里：http://clin003.com/ideas/adobe-actionscript-3-allownetworking-internal-1792/
+                // Allow script access['sameDomain'|'never'|'always']
+                // Related, please see here：http://clin003.com/ideas/adobe-actionscript-3-allownetworking-internal-1792/
                 allowScriptAccess: 'sameDomain',
-                // 允许网络访问['all'|'internal'|'none]
-                // 如果你想点击外链视频右下角的youku图标返回youku页面观看，请设置为'all'
-                // 设置为 'none' 会导致视频无法加载，除非你不想看视频否则请不要设置为none
+                // Allow network access['all'|'internal'|'none]
+                // To click the youku icon in the lower right corner of, the external link video to return to the youku page to watch, please set it to 'all'
+                // Setting to 'none' will cause the video to fail to load, please don't set it to none, unless you don't want to watch the video.
                 allowNetWorking: 'all',
-                // 传递给flash的参数，注意大小写敏感
-                // 如果源已经存在的变量会被覆盖掉，
-                // 比如源已经有了 a=1&b=2
-                // 在这里填上了 a=0&c=3
-                // 最后会变成 a=0&b=2&c=3
+                // Parameters passed to flash, pay attention to case sensitivity
+                // If the variable already exists in the source, it will be overwritten,
+                // For example:
+                // the source already has              a=1&b=2
+                // fill in here                        a=0&c=3
+                // will end up being                   a=0&b=2&c=3
                 flashVars: 'isAutoPlay=false&winType=',
             },
-            {name: '土豆外链',
+            {name: 'Potato chain',
                 url: /^https?:\/\/www\.tudou\.com\/\w\/.+/i,
                 excludes: /^https?:\/\/www\.tudou\.com\//i,
                 enabled: true,
@@ -116,7 +117,7 @@
                 allowNetWorking: 'all',
                 flashVars: 'autoPlay=false',
             },
-            {name: '腾讯视频外链',
+            {name: 'Tencent video external link',
                 url: /^https?:\/\/static\.video\.qq\.com\/.+/i,
                 excludes: /^https?:\/\/v\.qq\.com\//i,
                 enabled: true,
@@ -124,7 +125,7 @@
                 allowNetWorking: 'all',
                 flashVars: 'auto=0',
             },
-            {name: '新浪视频外链',
+            {name: 'Sina video external link',
                 url: /^https?:\/\/(?:p\.)?you\.video\.sina\.com\.cn\/.+/i,
                 excludes: /^https?:\/\/video\.sina\.com\.cn\//i,
                 enabled: true,
@@ -132,7 +133,7 @@
                 allowNetWorking: 'all',
                 flashVars: 'autoPlay=0',
             },
-            {name: '乐视外链',
+            {name: 'Letv chain',
                 url: /^https?:\/\/(?:img1\.c0|i7\.imgs)\.letv\.com\//i,
                 excludes: /^https?:\/\/www\.letv\.com\//i,
                 enabled: true,
@@ -140,7 +141,7 @@
                 allowNetWorking: 'all',
                 flashVars: 'autoPlay=0',
             },
-            {name: 'youtube外链',
+            {name: 'YouTube external link',
                 url: /^(?:https?:)?\/\/www\.youtube(-nocookie)?\.com\/v\/.+/i,
                 excludes: /https?:\/\/www\.youtube\.com\//i,
                 enabled: true,
@@ -148,14 +149,14 @@
                 allowNetWorking: 'all',
                 flashVars: 'autoplay=0',
             },
-            {name: '17173视频外链',
+            {name: '17173 video link',
                 url: /^https?:\/\/(?:f\.v\.17173cdn|v\.17173|17173\.tv\.sohu)\.com\//i,
                 excludes: /^https?:\/\/(?:17173\.tv\.sohu|v\.17173)\.com\//i,
                 enabled: true,
                 allowNetWorking: 'all',
                 flashVars: 'autoplay=0',
             },
-            {name: '音悦台外链',
+            {name: 'Yinyuetai external chain',
                 url: /^https?:\/\/player\.yinyuetai\.com\//i,
                 excludes: /^https?:\/\/v\.yinyuetai\.com\//i,
                 enabled: true,
@@ -165,10 +166,11 @@
         ];
 
 
-        // 这里的规则为了兼容一些特殊的网站弹出视频时和页面本身冲突功能的修正
-        // 这个规则没有定型的模版，会通过各特殊网站进行不断的修正。
+        // The rules here are in order to be compatible with the correction of the conflict function of the page itself,
+        // when the video pops up on some special websites
+        // There is no fixed template for this rule, and it will be continuously revised through various special websites.
         var popVideoRules = [
-            {name: '优酷',
+            {name: 'Youku',
                 url: /^https?:\/\/v\.youku\.com\/.+/i,
                 command: 'addStyle',
                 css: getMStr(function () {
@@ -189,7 +191,7 @@
             },
         ];
         
-        // 用到的图标
+        // icons used
         var icons = {
             // 浮动工具栏
             floatBar: {
@@ -210,13 +212,13 @@
             
         };
         
-        // 第一时间备份一些方法,防止被页面脚本覆盖掉
+        // Backup some methods at the first time, to prevent it being overwritten by page scripts.
         var nativeMethods = {
             forEach: Array.prototype.forEach,
             some: Array.prototype.some,
         };
 
-        //获取内容区域到版边的距离
+        //Get the distance from the content area to the margin
         function getContentClientRect(elem) {
             var rect = elem.getBoundingClientRect();
             var compStyle = getComputedStyle(elem);
@@ -237,17 +239,17 @@
             };
         };
 
-        //获取窗口大小.
+        //Get the window size.
         function getWindowSize() {
 /*
-            //包含滚动条
+            //contains scrollbar
             return {
                 h:window.innerHeight,
                 w:window.innerWidth,
             };
 */
 
-            //去除滚动条的窗口大小
+            //Window size without scrollbars
             var de = document.documentElement;
             var body = document.body;
             var backCompat = document.compatMode == 'BackCompat';
@@ -258,7 +260,7 @@
 
         };
 
-        //获取已滚动的距离
+        //Get the scrolled distance
         function getScrolled(container) {
             if (container) {
                 return {
@@ -267,7 +269,7 @@
                 };
             };
             /*
-            window.scrollX,scollY的值是可以被覆盖的，不靠谱
+            window.scrollX,scollY - The value can be overwritten, not reliable
             */
             var de = document.documentElement;
             var body = document.body;
@@ -277,8 +279,8 @@
             };
         };  
         
-        // 事件支持检测.
-        // 比如 eventSupported('fullscreenchange', document);
+        // Events support detection.
+        // For example eventSupported('fullscreenchange', document);
         function eventSupported(eventName, elem) {
             elem = elem || document.createElement('div');
             var prefix = ['o', 'ms', 'moz', 'webkit', ''];
@@ -314,7 +316,7 @@
 
         };
 
-        // 在指定对象上保存数据
+        // Save data on the specified object
         var data = (function () {
             'use strict';
             
@@ -342,8 +344,8 @@
             return data;
         })();
 
-        // 为mouseleave mouseenter事件做个兼容
-        // 需要 eventSupported， data函数支持
+        // Make a compatibility for 'mouseleave' 'mouseenter' event
+        // Need eventSupported, data function support
         var mouseEventListener = (function () {
 
             var support = {
@@ -357,17 +359,17 @@
             };
             
             return {
-                add : function (type, ele, callback) { //事件类型，元素，监听函数
+                add : function (type, ele, callback) { // Event type, element, listener function
                     if (support[type]) {
-                        ele.addEventListener(type, callback, false); //mouseleave,enter不冒泡，所以在冒泡阶段监听事件，不要担心子孙元素进出发生的事件冒泡上来。
+                        ele.addEventListener(type, callback, false); //mouseleave,enter No bubbling, so listen to events during the bubbling phase, and don't worry about events bubbling up when descendant elements enter and exit.
                     } else {
                         var listener = data(callback, 'mouseELListener');
                         if (!listener) {
                             listener = function (e) {
-                                var relatedTarget = e.relatedTarget; //mouseout，去往的元素；mouseover，来自的元素
-                                // 当mouseout（离开ele）去往的元素不是自己的子孙元素
-                                // 当mouseover（进入ele）来自的元素不是自己的子孙元素
-                                if (!ele.contains(relatedTarget)) { // contains函数，自己.contains(自己) 返回true
+                                var relatedTarget = e.relatedTarget; //mouseout，element to; mouseover, element from
+                                // When mouseout  (leaving ele)  goes to an element, that is not it's own descendant element
+                                // When mouseover (entering ele) comes from an element, that is not it's own descendant element
+                                if (!ele.contains(relatedTarget)) { // contains function, self.contains(self) returns true
                                     callback.call(ele, e);
                                 };
                             };
@@ -387,7 +389,7 @@
             };
         })();
 
-        // 从函数中获取多行注释的字符串
+        // Get a string for a multi-line comment from a function
         function getMStr(fn) {
             var fnSource = fn.toString();
             var ret = {};
@@ -403,7 +405,7 @@
             return ret;
         };
 
-        //对象克隆,接受{}和[]
+        //Object cloning, accepts {} and []
         function cloneObject(obj, deep) {
             var value;
             var ret = Array.isArray(obj) ? [] : {};
@@ -413,7 +415,7 @@
                 
                 value = obj[key];
                 
-                if (value === obj) {// 引用自己
+                if (value === obj) {// quote yourself
                     ret[key] = ret;
                 } else if (deep && (Array.isArray(value) || Object.prototype.toString.call(value) == '[object Object]')) {
                     ret[key] = cloneObject(value, true);
@@ -424,21 +426,21 @@
             return ret;
         };
 
-        //检测属性支持 (property 非 attribute)
-        //返回带前缀的可以直接执行是属性
-        // 比如proSupported('requestFullscreen');
+        // Detect property support (property not attribute)
+        // Returns the directly executable is property with prefix
+        // Such as proSupported('requestFullscreen');
         function proSupported(proName, obj) {
             obj = obj || document.createElement("div");
             
             if (proName in obj)
                 return proName;
 
-            //判断第一个字母是否大写，如果是的话，为构造函数，前缀也要 特定 的大写
+            // Determine whether the first letter is capitalized, and if so, it is a constructor, and the prefix must also be a specific uppercase
             var prefix = /^[A-Z]/.test(proName) ? ['O', 'MS', 'Moz', 'WebKit'] : ['o', 'ms', 'moz', 'webkit'];
 
             // console.log(prefix);
 
-            // 加前缀前首字母大写
+            // capitalize prefix
             proName = proName.replace(/^./, function (m) {
                     return m.toUpperCase();
             });
@@ -456,17 +458,17 @@
             return false;
         };
 
-        // css属性支持
-        // 比如WebkitTransform,MozTransform,OTransfomr
-        // chrome浏览器大小写前缀都行。
-        // firefox,opera只能大写
-        // ie 9+只能小写
-        // 比如cssProSupported('user-select');
+        // css attribute support
+        // For example WebkitTransform,MozTransform,OTransfomr
+        // The chrome browser uppercase and lowercase prefixes are fine。
+        // firefox, opera can only capitalize
+        // ie 9+ is lowercase only
+        // For example cssProSupported('user-select');
         function cssProSupported(proName, elem) {
             elem = elem || document.createElement('div');
             var style = elem.style;
 
-            // 转为驼峰，border-top-width >> borderTopWidth
+            // turn hump，border-top-width >> borderTopWidth
             proName = proName.replace(/-([a-z])/g, function (a, b) {
                     return b.toUpperCase();
             });
@@ -483,14 +485,14 @@
                 camelPro = (prefix[l] + proName).replace(/-([a-z])/g, function (a, b) {
                     return b.toUpperCase();
                 });
-                if (camelPro in style) { // 大写前缀
+                if (camelPro in style) { // uppercase prefix
                     return camelPro;
                 };
 
                 camelPro = camelPro.replace(/^./, function (a) { // 小写前缀
                         return a.toLowerCase();
                 });
-                if (camelPro in style) { // 大写前缀
+                if (camelPro in style) { // uppercase prefix
                     return camelPro;
                 };
             };
@@ -498,13 +500,13 @@
             return false;
         };
 
-        // css属性值支持
-        // 比如cssValueSupported('cursor', 'grabbing')
+        // css Attribute value support
+        // for example cssValueSupported('cursor', 'grabbing')
         function cssValueSupported(proName, value, elem) {
             elem = elem || document.createElement('div');
             var style = elem.style;
 
-            // 转为驼峰，border-top-width >> borderTopWidth
+            // turn hump，border-top-width >> borderTopWidth
             proName = proName.replace(/-([a-z])/g, function (a, b) {
                     return b.toUpperCase();
             });
@@ -525,27 +527,27 @@
         };
 
         
-        // 特性支持情况
+        // Feature Support
         var support = {
             MutationObserver: proSupported('MutationObserver', window),
             cssBoxSizing: cssProSupported('box-sizing'),
             
-            // 请求全屏
+            // request fullscreen
             requestFullscreen: proSupported('requestFullscreen') || proSupported('requestFullScreen'),
-            // 返回当前页面是否允许全屏
+            // Returns whether the current page allows fullscreen
             fullscreenEnabled: proSupported('fullscreenEnabled', document) || proSupported('fullScreenEnabled', document),
-            // 返回当前全屏的元素，否则返回null
+            // Returns the current fullscreen element, otherwise returns null
             fullscreenElement: proSupported('fullscreenElement', document)
                 || proSupported('fullScreenElement', document) 
                 || proSupported('currentFullScreenElement', document),
-            // fullscreen 事件
+            // fullscreen event
             fullscreenchange: eventSupported('fullscreenchange', document),
             
         };
 
         // console.log(support);
         
-        // fx库
+        // fx library
         var fx = (function () {
             'use strict';
             
@@ -556,13 +558,13 @@
 
             function init(selector, context) {
                 
-                if (selector instanceof HTMLElement) { // 单个 html element 节点
+                if (selector instanceof HTMLElement) { // A single html element node
                     [].push.call(this, selector);
                     return this;
                 };
 
-                if (Array.isArray(selector)) {// 单纯的元素组成的数组
-                    // 去重
+                if (Array.isArray(selector)) {// array of simple elements
+                    // Deduplication
                     var unique = [];
                     selector.forEach(function (node) {
                         if (node.nodeType === 1 && unique.indexOf(node) == -1) {
@@ -574,8 +576,8 @@
                     return this;
                 };
                 
-                if (typeof selector == 'string') {// css字符串
-                    if (!context || !context.nodeType || context.nodeType != 1) {// 不是元素节点的话，context指向document
+                if (typeof selector == 'string') {// css string
+                    if (!context || !context.nodeType || context.nodeType != 1) {// If it is not an element node, context points to document
                         context = document;
                     };
                     selector = context.querySelectorAll(selector); // NodeList
@@ -585,7 +587,7 @@
                 };
                 
                 if (selector instanceof NodeList) {// NodeList 
-                    // 去除非元素节点
+                    // remove non-element nodes
                     var elems = [];
                     each(selector, function () {
                         if (this.nodeType == 1) {
@@ -604,7 +606,7 @@
 
             };
 
-            // 遍历类数组
+            // iterate over class array
             function each(elems, fn) {
                 [].forEach.call(elems, function (elem, index) {
                     fn.call(elem);
@@ -614,76 +616,76 @@
             init.prototype = {
                 
                 animate: function (pros, opts) {
-                    // 判断pros是否有属性
+                    // Determine whether pros has attributes
                     for (var pro in pros) {
                         if (!pros.hasOwnProperty(pro)) continue;
                         break;
                     };
                     if (!pro) return this;
                     
-                    // 修正opts参数
+                    // Modify the opts parameter
                     if (!opts) {
                         opts = {};
                     };
                     
-                    // 动画持续时间
+                    // animation duration
                     if (typeof opts.duration != 'number') {
                         opts.duration = 400;
                     };
                     
-                    // 动画算法
+                    // animation algorithm
                     if (!opts.easing || !easing[opts.easing]) {
                         opts.easing = 'swing';
                     };
                     
-                    // 是否将动画放入队列
+                    // whether to queue the animation
                     if (opts.queue !== false) {
                         opts.queue = true;
                     };
                     
-                    // 为每个属性指定特定的动画方法
+                    // Assign specific animation methods to each property
                     opts.specialEasing = opts.specialEasing || {};
                     
-                    // 每个元素的所有属性动画完成之后都会调用
+                    // Called after all property animations of each element have completed
                     opts.complete = opts.complete  || emptyFn;
-                    // 封装complete
+                    // package complete
                     opts.completeW = function () {
                         opts.complete.call(this);
-                        // 召唤下一个动画
+                        // Summon the next animation
                         if (opts.queue) {
                             $(this).dequeue();
                         };
                     };
                     
-                    // 每个元素的每个属性的每一步都会调用
+                    // Every step for every attribute of every element calls
                     opts.step = opts.step  || emptyFn;
                 
                 
                     return this[opts.queue ? 'queue' : 'each'](function () {
                         var elem = this;
                         
-                        // 复制pros对象
+                        // copy pros object
                         var prosC = cloneObject(pros);
-                        // 复制opts对象
+                        // Copy the opts object
                         var optsC = cloneObject(opts);
-                        // 复制pros对象，用来确认单个元素完成了什么属性动画
+                        // Copy the pros object to confirm, which attribute animation is completed by a single element
                         optsC.curAnim = cloneObject(pros);
 
-                        // 缓存计算后的样式
+                        // Cache computed styles
                         var cS = getComputedStyle(elem);
-                        // 是否已经隐藏了
+                        // Is it hidden
                         var isHidden = cS.display == 'none';
 
                         var pro;
                         var value;
-                        // 判断是否是特殊操作，比如toggle show hide
+                        // Determine whether it is a special operation, such as toggle show hide
                         for (pro in prosC) {
                             if (!prosC.hasOwnProperty(pro)) continue;
                             value = prosC[pro];
                             break;
                         };
 
-                        // 判断toggle是该执行show还是hide动画
+                        // Determine whether the toggle should perform show or hide animation
                         if (value === 'toggle') {
                             value = isHidden ? 'show' : 'hide';
                             
@@ -697,12 +699,12 @@
                         var style = elem.style;
                         
                         var allAniData = [];
-                        if (value === 'show') {// show操作
+                        if (value === 'show') {// show operation
                             if (!isHidden) {
                                 optsC.completeW.call(elem);
                                 return;
                             };
-                            // 显示
+                            // show or demonstrate
                             style.display = '';
                             if (cS.display == 'none') {
                                 style.display = 'block';
@@ -711,20 +713,20 @@
                                 };
                             };
 
-                            optsC.show = true;// 标记show操作
+                            optsC.show = true;// Mark show operation
                         
-                        } else if (value === 'hide') {// hide操纵
+                        } else if (value === 'hide') {// hide manipulation
                             if (isHidden) {
                                 optsC.completeW.call(elem);
                                 return;
                             };
                             
-                            optsC.hide = true;// 标记show操作
+                            optsC.hide = true;// Mark show operation
                         };
                         
                         
                         
-                        // 获取当前值
+                        // get the current value
                         function getCur(pro) {
                             if (pro in style) {
                                 return cS[pro];
@@ -733,23 +735,23 @@
                             };
                         };
                         
-                        var start;// 开始
-                        var end;// 结束
-                        var unit;// 单位
+                        var start;// start
+                        var end;// end
+                        var unit;// unit
                         var parts;
                         var parts2;
                         var unit2;
                         var reg = /^([+-]=)?([\d+-.]+)(.*)$/;
 
-                        // 保存原始样式
+                        // save original style
                         optsC.orig = {};
 
-                        for (pro in prosC) {// 每个动画属性生成一个FX对象
+                        for (pro in prosC) {// Each animation property generates an FX object
                             if (!prosC.hasOwnProperty(pro)) continue;
 
                             value = prosC[pro];
                             
-                            // 备份当前值,show或者hide操作的时候最后还原样式。
+                            // Backup the current value, restore the style at the end of the show or hide operation.
                             optsC.orig[pro] = style[pro];
                             
                             if (value === 'show') {
@@ -766,7 +768,7 @@
                                 if (parts) {
                                     unit = parts[3];
                                 };
-                            } else {// 保持单位一样
+                            } else {// keep the unit the same
                                 parts = value.toString().match(reg);
                                 if (parts) {
                                     unit = parts[3];
@@ -779,12 +781,12 @@
                                         start = parseFloat(parts2[2]);
                                         unit2 = parts2[3];
                                         if (unit != unit2) {
-                                            // 计算开始的值=(end/cur)*start
+                                            // Calculation start value=(end/cur)*start
                                             style[pro] = (end || 1) + unit;
                                             start = ((end || 1) / parseFloat(getCur(pro))) * start;
                                         };
                                         
-                                        if (parts[1]) {// +=/-=,做相对运行
+                                        if (parts[1]) {// +=/-=,do relative run
                                             end = ((parts[1] == "-=" ? -1 : 1) * end) + start;
                                         };
                                     };
@@ -793,14 +795,15 @@
                             
                             if (typeof start == 'number' && typeof end == 'number' && typeof unit == 'string') {
                                 allAniData.push([elem, pro, optsC, start, end, unit]);
-                                // new FX(elem, pro, optsC).custom(start, end, unit);// 开始动画
-                            } else {// 不理会，直接标记动画完成
+                                // new FX(elem, pro, optsC).custom(start, end, unit);// start animation
+                            } else {// Ignore it, just mark the animation as complete
                                 optsC.curAnim[pro] = true;
                             };
                         };
                         
-                        // 等所有动画数据都获取完成后才开始动画，
-                        // 否则对于show之类的操作，如果width先绘制第一帧设置width为0之后，容器会发生伸缩，导致height的可能获取不正确
+                        // Wait for all animation data to be acquired before starting the animation，
+                        // Otherwise, for operations such as show, if the width is first drawn on the first frame and the width is set to 0
+                        // the container will expand and contract, resulting in incorrect height acquisition.
                         allAniData.forEach(function (data) {
                             new FX(data[0], data[1], data[2]).custom(data[3], data[4], data[5]);
                         });
@@ -871,7 +874,7 @@
                     }), opts);
                 },
                 
-                // 立即停止当前动画
+                // Immediately stop the current animation
                 stop: function (clearQueue, jumpToEnd) {
                     if (clearQueue) {
                         this.clearQueue();
@@ -879,14 +882,14 @@
                     
                     this.each(function () {
                         for (var i = timers.length - 1; i >= 0; i--) {
-                            if (timers[i].elem == this) {//是当前元素的属性动画
+                            if (timers[i].elem == this) {// Is the attribute animation of the current element
                                 timers[i](jumpToEnd);
                                 timers.splice(i, 1);
                             };
                         };
                     });
 
-                    // 手动出列
+                    // Manually dequeue
                     if (!jumpToEnd) {
                         this.dequeue();
                     };
@@ -919,22 +922,22 @@
                     
                     return this.each(function () {
                         
-                        // 取出队列
+                        // take out the queue
                         var q = data(this, type + 'queue');
-                        if (!q) {// 初始化
+                        if (!q) {// initialization
                             q = [];
                         };
                         
                     
                         if (typeof fn == 'function') {
                             q.push(fn);
-                        } else if (Array.isArray(fn)) { // array类型，直接覆盖掉
+                        } else if (Array.isArray(fn)) { // array type, overwrite directly
                             q = fn;
                         };
                         
                         data(this, type + 'queue', q);
                         
-                        if (type == 'fx' && q.length == 1) { // 如果动画队列中只有自己，立即执行
+                        if (type == 'fx' && q.length == 1) { // If there is only yourself in the animation queue, execute immediately
                             q[0].call(this);
                         };
                         
@@ -944,13 +947,13 @@
                     type = type || 'fx';
                     
                     return this.each(function () {
-                        // 取出队列
+                        // take out the queue
                         var q = data(this, type + 'queue');
-                        if (!q) {// 初始化
+                        if (!q) {// initialization
                             q = [];
                         };
                         
-                        q.shift();// 删除第一个
+                        q.shift();// delete the first
                         
                         data(this, type + 'queue', q);
                         
@@ -963,7 +966,7 @@
             };
 
             
-            //对象克隆,接受{}和[]
+            // Object cloning, accepts {} and []
             function cloneObject(obj, deep) {
                 var value;
                 var ret = Array.isArray(obj) ? [] : {};
@@ -980,18 +983,18 @@
                 return ret;
             };
 
-            // 获取当前时间
+            // get current time
             function now() {
                 return Date.now();
             };
             
-            // 空函数
+            // empty function
             function emptyFn() {
             };
             
 
 
-            // 在指定对象上保存数据
+            // Save data on the specified object
             var data = (function () {
                 'use strict';
                 
@@ -1009,7 +1012,7 @@
                     if (!cache.data[id]) {//初始化
                         cache.data[id] = {};
                     };
-                    if (typeof value == 'undefined') {// 取值
+                    if (typeof value == 'undefined') {// value
                         return typeof key == 'undefined' ? cache.data[id] : cache.data[id][key];
                     } else {
                         return cache.data[id][key] = value;
@@ -1028,7 +1031,7 @@
                 window.msRequestAnimationFrame || 
                 window.oRequestAnimationFrame;
 
-            // 算法
+            // algorithm
             var easing = {
                 linear: function( p, n, firstNum, diff ) {
                     return firstNum + diff * p;
@@ -1038,7 +1041,7 @@
                 },
             };
 
-            // 生成show,hide,toggle动画属性
+            // Generate show, hide, toggle - animation properties
             function genFx(type, opts) {
                 var pros = {
                     o: ['opacity',],
@@ -1059,11 +1062,11 @@
                 return ret;
             };
             
-            // 绘制动画
+            // drawing animation
             function draw() {
                 for ( var i = 0, l = timers.length; i < l; i++ ) {
                     if ( !timers[i]() ) {
-                        timers.splice(i, 1);//删除完成的属性对象
+                        timers.splice(i, 1);//Delete completed attribute object
                         i--;
                         l--;
                     };
@@ -1077,26 +1080,26 @@
             };
 
             
-            // 每个属性创建一个FX实例
+            // Create an FX instance per property
             function FX(elem, pro, opts) {
-                // 配置
+                // configuration
                 this.opts = opts;
-                // 元素
+                // element
                 this.elem = elem;
-                // 动画属性
+                // animation properties
                 this.pro = pro;
             };
             
-            FX.off = false;// 关闭动画
+            FX.off = false;// close animation
             
             FX.prototype = {
-                // 更新属性值
+                // update attribute value
                 update: function () {
                     var pro = this.pro;
                     var elem = this.elem;
                     var opts = this.opts;
                     
-                    // 调用step函数，可以修改this对象
+                    // Call the step function, you can modify this object
                     opts.step.call( elem, this.now, this );
                     
                     var style = elem.style;
@@ -1113,31 +1116,31 @@
                         elem[pro] = this.now;
                     };
                 },
-                // 开启动画
+                // turn on animation
                 custom: function (from, to, unit) {
-                    this.startTime = now();//动画开始时间
+                    this.startTime = now();//animation start time
                     
-                    this.start = from;//位置开始点
-                    this.end = to;//位置结果点
+                    this.start = from;//position start point
+                    this.end = to;//location result point
                     
-                    this.unit = unit;// 单位
+                    this.unit = unit;// unit
                     
-                    this.now = this.start;//位置当前点
+                    this.now = this.start;//position current point
                     
-                    //pos是按一定算法把时间上的比率折算到位置上的比率
-                    //state是时间间隔在总的duration的比率
+                    //pos is the ratio of time converted to position according to a certain algorithm
+                    //state is the ratio of the time interval to the total duration
                     this.pos = this.state = 0;
 
-                    //根据this.now位置当前点的值来设定元素的属性显示出来
+                    //According to the value of the current point of this.now position, set the attribute of the element and display it
                     this.update();
 
                     var self = this;
                     function t(jumpToEnd){
                         return self.step(jumpToEnd);
                     };
-                    t.elem = this.elem;//删除的时候做判断用
+                    t.elem = this.elem;//Used for judgment when deleting
                     
-                    //timers栈是公共的，不同的元素的不同的属性step都是放在这里面。
+                    //The timers stack is public, and the different attribute steps of different elements are placed in it.
                     timers.push(t);
                     
                     if ( aning == null ) {
@@ -1147,21 +1150,21 @@
 
                 },
                 step: function (jumpToEnd) {
-                    var t = now();//运行到当前的时间
+                    var t = now();//run to the current time
                     
                     var opts = this.opts;
                     
-                     // 强行指定结束或当前时间大于startTime+duration
+                     // Forcibly specify the end or the current time is greater than startTime+duration
                     if (FX.off || jumpToEnd || t >= opts.duration + this.startTime ) {
-                        this.now = this.end;//当前的位置为结束位置
-                        this.pos = this.state = 1;//当前的state,pos的比率为1.最大。
-                        this.update();//显示
+                        this.now = this.end;//The current position is the end position
+                        this.pos = this.state = 1;//The current state, the ratio of pos is 1. The maximum.
+                        this.update();//show
                         
-                        //标识这个属性的动画已经完成
+                        //Indicates that the animation for this property has completed
                         var curAnim = opts.curAnim;
                         curAnim[ this.pro ] = true;
                         
-                        //再一次判断是否这个元素的所有属性都已完成
+                        //Determine again whether all attributes of this element have been completed
                         var done = true;
                         for ( var i in curAnim ) {
                             if (!curAnim.hasOwnProperty(i)) continue;
@@ -1183,7 +1186,7 @@
                                     };
                                 };
                                 
-                                // 还原css属性
+                                // restore css properties
                                 var orig = opts.orig;
                                 for (var i in orig) {
                                     if (!orig.hasOwnProperty(i)) continue;
@@ -1196,7 +1199,7 @@
                                 style.overflowY = opts.overflowY;
                             };
                         
-                            // 执行回调函数
+                            // Execute the callback function
                             opts.completeW.call( this.elem );
 
                         };
@@ -1205,16 +1208,17 @@
                     }; 
                     
                     
-                    var n = t - this.startTime;//时间间隔
-                    this.state = n / opts.duration;//时间间隔比率
+                    var n = t - this.startTime; //time interval
+                    this.state = n / opts.duration; //interval ratio
 
-                    //根据时间间隔的比率再按一定的算法比率来计算当前的运动的位置点的比率。默认是swing的算法
+                    //According to the ratio of the time interval, the ratio of the current moving position point is calculated according to a certain algorithm ratio.
+                    //The default is the swing algorithm.
                     var easingFn = easing[opts.specialEasing[this.pro]] || easing[opts.easing];
                     this.pos = easingFn(this.state, n, 0, 1, opts.duration);
-                    //当前的位置
+                    // current location
                     this.now = this.start + ((this.end - this.start) * this.pos);
 
-                    // 显示
+                    // show
                     this.update();
                     
                     return true;
@@ -1232,18 +1236,18 @@
         var url = location.href;
         
         
-        // 重新初始化插件
+        // Reinitialize the plugin
         function reinitPlugin(plugin) {
-            // 重载flash让参数生效
-            // chrome firefox 切换display none就能引发重载，ie不行。
-            // chrome firefox 删除后，添加进dom引发重载，ie不行
-            // chrome 切换常规流绝对定位流引发重载，ie不行
+        // Overload flash to make the parameters take effect
+        // In chrome firefox, switching display none can cause overloading, but ie cannot.
+        // After chrome firefox is deleted, adding it to the dom will cause overloading, but ie will not work
+        // chrome switches to regular stream and absolute positioning stream causes overloading, but ie does not work
             
             var pluNS = plugin.nextSibling;
             var pluPN = plugin.parentNode;
             pluPN.removeChild(plugin);
 
-            // 加个延时，否则firefox无法重载
+            // Add a delay, otherwise firefox will not be able to reload
             setTimeout(function () {
                 if(pluNS){
                     pluPN.insertBefore(plugin, pluNS);
@@ -1263,15 +1267,15 @@
 
         function reinitFlash() {
 
-            // 找到的插件统统由这个函数处理
+            // The found plugins are all processed by this function
             function initializer(plugins) {
                 // console.log(plugins);
                 
                 plugins.forEach(function (plugin) {
 
-                    // plugin是否在已插入文档中
+                    // Whether the plugin is in the inserted document
                     if (!document.contains(plugin)) return;
-                    // 处理过的跳过
+                    // processed skip
                     if (plugin.fvReInitialized === true) return;
 
                     var src;
@@ -1304,17 +1308,17 @@
                         };
                         
                         type = type || '';
-                    } else {// embed标签
+                    } else {// embed tag
                         src = plugin.src;
                         type = plugin.type;
                     };
 
                     // console.log(isObject, type, src);
 
-                    // 如果不存在src或者不是flash插件
+                    // If src does not exist or is not a flash plugin
                     if (!src || !/^(?:|application\/x-shockwave-flash)$/i.test(type)) return;
                     
-                    // 匹配到的规则
+                    // matched rules
                     var matched;
                     rules.some(function (rule) {
                         if (rule.enabled && rule.url.test(src)){
@@ -1324,7 +1328,7 @@
                     });
                     if (!matched) return;
 
-                    // 给object标签添加param
+                    // Add param to object tag
                     var pFragment;
                     function addParamO(name, value) {
                         name = name.toLowerCase();
@@ -1341,27 +1345,27 @@
 
                                 return true;
                             };
-                        })) {// 如果不存在参数，则新建
+                        })) {// If the parameter does not exist, create a new one
                             var param = document.createElement('param');
                             param.name = name;
                             param.value = value;
-                            // 先装进fragment，最后一起添加进dom，防止flash多次重载消耗性能
+                            // Load the fragment first, and add it to the 'dom' at the end to prevent multiple overloads of flash from consuming performance
                             pFragment = pFragment ? pFragment : document.createDocumentFragment();
                             pFragment.appendChild(param);
                         };
                         
                     };
 
-                    // 生成新的flashvars字符串
+                    // generate new flashvars string
                     function gFlashVars(oValue, add) {
                         if (!oValue) return add;
                         if (!add) return oValue;
                         
-                        // 转成数组 ['a=1', 'b=2', 'c=']之类的形式
+                        // Convert to an array ['a=1', 'b=2', 'c='] in the form of
                         oValue = oValue.split('&');
                         add = add.split('&');
 
-                        // 转成字典 {a:'1', b:'2', c:''}之类的形式
+                        // convert to dictionary {a:'1', b:'2', c:''} in the form of
                         var oVDict = {};
                         
                         function gDict(kv) {
@@ -1379,11 +1383,11 @@
                             };
                         };
                         
-                        // 用新的值覆盖旧的值
+                        // Overwrite old value with new value
                         oValue.forEach(gDict);
                         add.forEach(gDict);
                         
-                        // 转会字符串
+                        // transfer string
                         var fVars = [];
                         for (var key in oVDict) {
                             if (!oVDict.hasOwnProperty(key)) continue;
@@ -1434,7 +1438,7 @@
                     };
                     
 
-                    // 标记已经修改
+                    // tag has been modified
                     plugin.fvReInitialized = true;
                     
                     reinitPlugin(plugin);
@@ -1442,34 +1446,34 @@
             };
             
             
-            // 一些规则根据excludes强行设置enabled为false
+            // Some rules forcefully set enabled to false according to excludes
             rules.forEach(function (rule) {
                 if (rule.hasOwnProperty('excludes') && rule.excludes.test(url)) {
-                    // console.log('根据excludes禁用规则', rule);
+                    // console.log('Disable rules based on excludes', rule);
                     rule.enabled = false;
                 };
             
             });
             
 
-            // 先处理脚本运行前已经加载的flash
+            // First process the flash that has been loaded before the script runs
             initializer([].slice.call(document.querySelectorAll('object, embed'), 0));
             
             
-            // 建立一个监视事件，处理后来追加的插件
+            // Create a monitoring event to handle later added plugins
             if(support.MutationObserver)
             (new window[support.MutationObserver](function (mRecords) {
-                // 发现的等待处理的插件数组集合
+                // A collection of discovered plugin arrays waiting to be processed
                 var wPlugins = [];
 
                 mRecords.forEach(function (mRecord) {
                     // console.log(mRecord);
                     var addedNodes = mRecord.addedNodes;
-                    if (!addedNodes.length) return;// 非添加节点操作
+                    if (!addedNodes.length) return;// non-add node operation
 
                     nativeMethods.forEach.call(addedNodes, function (node) {
                         if (node.nodeType != 1) return;
-                        // 如果节点本身就是插件
+                        // If the node itself is a plugin
                         if (/^(?:OBJECT|EMBED)$/.test(node.nodeName)) {
                             wPlugins.push(node);
                         };
@@ -1495,7 +1499,7 @@
         
         if (prefs.allowReinitFlash) {
             // console.log(document.contentType);
-            // 修复firefox标签单独请求一个flash，加载本脚本后导致不能正常加载flash的问题
+            // Fix the problem that the firefox tab requests a flash separately, and the flash cannot be loaded normally after loading this script
 
             if (typeof document.contentType != 'string' || document.contentType != 'application/x-shockwave-flash') {
                 reinitFlash();
@@ -1505,7 +1509,7 @@
         
         
     // --------------------------------------------
-        // 弹出视频
+        // popup video
         function PopVideo(video) {
             this.video = video;
             this.init();
@@ -1537,42 +1541,42 @@
                 this.vOriControls = video.controls;
                 var vNodeName = video.nodeName;
                 
-                // 如果是这些元素，那么pin的时候直接用fixed方式（这些元素随便调整position不会引发重载）
+                // If it is these elements, then use the fixed method directly when pinning (adjusting the position of these elements will not cause overloading)
                 var fixedPin = /^(?:IFRAME|VIDEO|AUDIO)$/.test(vNodeName);
                 this.fixedPin = fixedPin;
                 
-                video.fvPopVideo = true;// 标记弹出中。
+                video.fvPopVideo = true;// Mark popup.
                 
-                // 很多网站加载flash为了兼容现代浏览器和ie，经常使用 object classid嵌套object或者embed的格式
+                // Many websites load flash in order to be compatible with modern browsers and ie, and often use the object classid nested object or embed format
                 var vPEIsObject;
                 var vCEIsPlugin;
                 
-                if (/^(?:EMBED|OBJECT)$/.test(vNodeName)) {// object,embed标签
-                    if ((vPEIsObject = video.parentElement) && vPEIsObject.nodeName == 'OBJECT') {// 弹出的是被嵌套的object或者embed
+                if (/^(?:EMBED|OBJECT)$/.test(vNodeName)) {// object, embed tags
+                    if ((vPEIsObject = video.parentElement) && vPEIsObject.nodeName == 'OBJECT') {// What pops up is the nested object or embed
                         vPEIsObject.fvPopVideo = true;
                         this.vPEIsObject = vPEIsObject;
-                    } else if (vNodeName == 'OBJECT' && (vCEIsPlugin = video.querySelector('object, embed'))) { // 弹出的是objecj元素，查看是否嵌套了object或者embed
+                    } else if (vNodeName == 'OBJECT' && (vCEIsPlugin = video.querySelector('object, embed'))) { // The object element pops up, check whether object or embed is nested
                         vCEIsPlugin.fvPopVideo = true;
                         this.vCEIsPlugin = vCEIsPlugin;
-                        vCEIsPlugin.classList.add('fv-p-v-video-child-plugin'); // 添加样式拉伸嵌套的object,embed
-                    } else {// 独立的object或者embed标签
-                        // console.log('独立标签：', video);
+                        vCEIsPlugin.classList.add('fv-p-v-video-child-plugin'); // Add style to stretch nested object, embed
+                    } else {// Independent object or embed tag
+                        // console.log('Standalone label:', video);
                     };
-                } else if(/^(?:VIDEO|AUDIO)$/.test(vNodeName)) {// html5 video,audio标签
-                    video.controls = true; // 显示播放控件
-                } else {// iframe 标签
+                } else if(/^(?:VIDEO|AUDIO)$/.test(vNodeName)) {// html5 video, audio tags
+                    video.controls = true; // Show playback controls
+                } else {// iframe tag
                     
                 };
 
                 
-                // 创建创造关灯效果的黑色覆盖层
+                // Create a black overlay that creates the lights off effect
                 var fixedOverlayer = document.createElement('fvspan');
                 this.fixedOverlayer = fixedOverlayer;
                 fixedOverlayer.className = 'fv-p-v-light-off';
                 document.body.appendChild(fixedOverlayer);
 
                 
-                // 创建控制video缩放的控制层，放在video的下面，但是在light层的上面
+                // Create a control layer that controls video scaling, placed below the video, but above the light layer
                 var controlLayer = document.createElement('fvspan');
                 this.controlLayer = controlLayer;
                 controlLayer.className = 'fv-p-v-control-layer';
@@ -1646,7 +1650,7 @@
                 
                 document.body.appendChild(controlLayer);
                 
-                // 获取元素
+                // get element
                 var cTitleBar = controlLayer.querySelector('.fv-p-v-control-title-bar');
                 this.cTitleBar = cTitleBar;
                 
@@ -1698,7 +1702,7 @@
                     video.style.transform = ratio ? `scale(${ratio})` : "";
                 }, true);
 
-                // 监听标题栏的命令点击
+                // Listen for command clicks on the title bar
                 cTitleBar.addEventListener('click', function (e) {
                     if (e.button != 0) return;
                     
@@ -1722,13 +1726,13 @@
                         break;
                         case cCommandF:
                             if (support.fullscreenEnabled && support.requestFullscreen) {
-                                if (!document[support.fullscreenEnabled]) {// 全屏allowfullscreen属性不为true的iframe子元素的时候
-                                    alert('当前网页无法全屏');
+                                if (!document[support.fullscreenEnabled]) {// When the fullscreen allowfullscreen attribute is not true, when the iframe is child element
+                                    alert('The current web page cannot be fullscreen');
                                 } else {
                                     video[support.requestFullscreen]();
                                 };
                             } else {
-                                alert('你的浏览器不支持全屏特性');
+                                alert('Your browser does not support the fullscreen feature');
                             };
 
                         break;
@@ -1739,7 +1743,7 @@
                 
                 }, true);
                 
-                // 双击标题栏切换最大化和还原
+                // Double-click the title bar to toggle maximize and restore
                 cTitleBar.addEventListener('dblclick', function (e) {
                     if (e.button != 0) return;
                     
@@ -1750,20 +1754,20 @@
                 }, true);
                 
                 
-                // 给resize添加监听函数
+                // Add a listener function to resize
                 controlLayer.addEventListener('mousedown', function (e) {
-                    if (e.button != 0) return;// 非左键
+                    if (e.button != 0) return;// non-left button
 
-                    if (self.maximized) return; //最大化后禁止使用拖拽缩放和移动功能
+                    if (self.maximized) return; // Prohibit the use of drag zoom and move functions after maximization
 
                     var target = e.target
                     var classList = target.classList;
-                    // 如果不是缩放手柄和标题栏
+                    // If not scale handles and title bar
                     if (!classList.contains('fv-p-v-control-resize-hand') && target != cTitleBar) return;
                     
-                    e.preventDefault(); // 禁止拖曳的时候选中文字
+                    e.preventDefault(); // Select text when dragging is prohibited
 
-                    // 点击时鼠标的位置，controlLayer 的长宽，top left的坐标
+                    // The position of the mouse when clicked, the length and width of the controlLayer, and the coordinates of top left
                     var mCoor = {
                         pageX: e.pageX,
                         pageY: e.pageY,
@@ -1777,7 +1781,7 @@
                         width: parseFloat(cLS.width),
                     };
                     
-                    // 缩放处理函数
+                    // zoom handler
                     function reize(allowSize, allowOffset) {
                         
                         function move(e) {
@@ -1812,7 +1816,7 @@
                                         cLS.height = minHeight + 'px';
                                         cLS.top = top - (minHeight - height) + 'px';
                                     }
-                                } else { // 单纯的移动
+                                } else { // simple movement
                                     cLS.top = Math.max(0, top) + 'px';
                                 };
                             } else {
@@ -1846,7 +1850,7 @@
                                         cLS.width = minWidth  + 'px';
                                     };
                                     
-                                } else { // 单纯的移动
+                                } else { // simple movement
                                     cLS.left = Math.max(0, left) + 'px';
                                 };
                             } else {
@@ -1859,11 +1863,11 @@
                         
 
                         
-                        // 结束拖拽
+                        // end drag
                         function up() {
                             PopVideo.movingHelperStyle.disabled = true;
                             
-                            // 重新订一下
+                            // reorder
                             if (self.pinned) {
                                 self.beforePin();
                                 
@@ -1882,7 +1886,7 @@
                     };
                     
 
-                    // 移动的时候取消iframe的pointer-events，否则移动到iframe上面的时候mousemove事件检测不到。
+                    // Cancel the pointer-events of the iframe when moving, otherwise the mousemove event cannot be detected when moving to the iframe.
                     PopVideo.movingHelperStyle.disabled = false;
 
                     if (target == cTitleBar) {
@@ -1891,33 +1895,33 @@
                             top: true,
                             left: true,
                         });
-                    } else if (classList.contains('fv-p-v-control-resize-hand-n')) {// 北
+                    } else if (classList.contains('fv-p-v-control-resize-hand-n')) {// north
                         reize({
                             height: true,
                             
-                            hMinus: true,// 标记反向
+                            hMinus: true,// tag reverse
                         }, {
                             top: true,
                         });
-                    } else if (classList.contains('fv-p-v-control-resize-hand-s')) {// 南
+                    } else if (classList.contains('fv-p-v-control-resize-hand-s')) {// south
                         reize({
                             height: true,
                         }, {
                         });
-                    } else if (classList.contains('fv-p-v-control-resize-hand-w')) {// 西
+                    } else if (classList.contains('fv-p-v-control-resize-hand-w')) {// west
                         reize({
                             width: true,
                             
-                            wMinus: true,// 标记反向
+                            wMinus: true,// tag reverse
                         }, {
                             left: true,
                         });
-                    } else if (classList.contains('fv-p-v-control-resize-hand-e')) {// 东
+                    } else if (classList.contains('fv-p-v-control-resize-hand-e')) {// east
                         reize({
                             width: true,
                         }, {
                         });                     
-                    } else if (classList.contains('fv-p-v-control-resize-hand-nw')) {// 西北
+                    } else if (classList.contains('fv-p-v-control-resize-hand-nw')) {// northwest
                         reize({
                             width: true,
                             height: true,
@@ -1928,13 +1932,13 @@
                             left: true,
                             top: true,
                         });
-                    } else if (classList.contains('fv-p-v-control-resize-hand-se')) {// 东南
+                    } else if (classList.contains('fv-p-v-control-resize-hand-se')) {// southeast
                         reize({
                             width: true,
                             height: true,
                         }, {
                         });                     
-                    } else if (classList.contains('fv-p-v-control-resize-hand-ne')) {// 东北
+                    } else if (classList.contains('fv-p-v-control-resize-hand-ne')) {// northeast
                         reize({
                             width: true,
                             height: true,
@@ -1943,7 +1947,7 @@
                         }, {
                             top: true,
                         });                     
-                    } else if  (classList.contains('fv-p-v-control-resize-hand-sw')) {// 西南
+                    } else if  (classList.contains('fv-p-v-control-resize-hand-sw')) {// southwest
                         reize({
                             width: true,
                             height: true,
@@ -1956,7 +1960,7 @@
                 }, true);
 
 
-                // 多个video时，最后摸到的那个提升到顶层
+                // When there are multiple videos, the last touched one is promoted to the top layer
                 this.videoEnterHandler =  function () {
                     self.setZIndex();
                 };
@@ -1964,17 +1968,17 @@
                 mouseEventListener.add('mouseenter', controlLayer, this.videoEnterHandler);
 
                 
-                // 调整前video的位置
+                // Adjust the position of the previous video
                 var vCCliRect = getContentClientRect(video);
                 // console.log(vCCliRect);
                 
-                // 控制层的大小和video保持一致
+                // The size of the control layer is consistent with the video
                 var cLS = controlLayer.style;
                 cLS.width = Math.max(vCCliRect.width, this.minWidth) + 'px';// 内容区域的宽度
                 cLS.height = Math.max(vCCliRect.height, this.minHeight) + 'px';// 内容区域的高度
                 
                 
-                // 为了以后还原，先保存一些需要更改的旧值
+                // To restore later, first save some old values that need to be changed
                 var vOriStyle = {};
                 this.vOriStyle = vOriStyle;
                 
@@ -1992,7 +1996,7 @@
                 // console.log(vOriStyle);
                 
 
-                // 如果是特殊站点，通过特殊规则修复兼容
+                // If it is a special site, fix compatibility through special rules
                 popVideoRules.some(function (rule) {
                     if (rule.url.test(url)) {
                         switch (rule.command) {
@@ -2014,14 +2018,14 @@
                     };
                 });
 
-                // 修改video样式
+                // modify video style
                 video.classList.add('fv-p-v-video');
                 
                 vS.setProperty('top', 0, 'important');
                 vS.setProperty('left', 0, 'important');
                 
-                // 用zindex提升flash层级，先设置position为relative或absolute
-                // 为避免更改position导致flash重载，不要让flash在常规流和绝对定位之间切换（chrome）
+                // Use zindex to increase the flash level, first set the position to relative or absolute
+                // To avoid reloading flash when changing position, don't let flash switch between regular flow and absolute positioning (chrome)
 
                 if (/^(?:static|relative)/.test(getComputedStyle(video).position)) {
                     vS.setProperty('position', 'relative', 'important');
@@ -2030,13 +2034,13 @@
                 };
 
                 
-                // 允许flash到最高层，不要被祖父级别的层叠上下文给限制主。 设置祖先的z-index为auto
-                // 允许调整大小，设置祖先(包含块)的overflow等于 visible
+                // Allow flash to the highest level, don't be restricted by the grandparent level of the stacking context. Set the ancestor's z-index to auto
+                // Allow resizing, set overflow of ancestor (containing block) equal to visible
                 var ancestor = video;
                 var ancestorStyle;
                 var ancestorData;
 
-                var ancestors = []; //保存所有的祖先的引用
+                var ancestors = []; // Keep references to all ancestors
                 this.ancestors = ancestors;
                 var docBody = document.body;
                 
@@ -2044,8 +2048,8 @@
                     ancestors.push(ancestor);
                     
                     ancestorData = data(ancestor, 'data');
-                    if (ancestorData) {// 保存的修改之前的样式数据
-                        ancestorData.count ++ ;// 多个video共用的祖先，标记+1。还原的时候，检测这个值，如果不等于1就不还原这个祖先元素的样式
+                    if (ancestorData) {// Saved style data before modification
+                        ancestorData.count ++ ;// Ancestry shared by multiple videos, mark +1. When restoring, check this value, if it is not equal to 1, the style of the ancestor element will not be restored
                     } else {
                         ancestorStyle = ancestor.style;
                         ancestorData = {
@@ -2058,12 +2062,12 @@
                             },              
                         };
 
-                        // 保存
+                        // keep
                         data(ancestor, 'data', ancestorData);
                         
                         ancestorStyle.setProperty('overflow', 'visible', 'important');
                         ancestorStyle.setProperty('z-index', 'auto', 'important');
-                        // 有绝对定位的父元素，改成absolute。
+                        // Absolutely positioned parent elements are changed to absolute.
                         if (ancestorStyle.position == 'fixed' || getComputedStyle(ancestor).position == 'fixed') {
                             ancestorStyle.setProperty('position', 'absolute', 'important');
                         };
@@ -2071,7 +2075,7 @@
                 };
                 
 
-                // 注册controlLayer的监控函数，让video永远跟着走。
+                // Register the monitoring function of controlLayer, so that the video will always follow.
                 if(support.MutationObserver){
                 var cLObserver = new window[support.MutationObserver](function (ms) {
                     // console.log(ms);
@@ -2089,16 +2093,16 @@
 
                 
                 
-                // 让控制层摆放在视频弹出前所在的位置
+                // Place the control layer where it was before the video popped up
                 cLS.top = 0;
                 cLS.left = 0;
                 var cLCCliRect = getContentClientRect(controlLayer);
-                // 保证top不要小于0否则标题栏会到窗口外面去。
+                // Make sure top is not less than 0 or the title bar will go outside the window.
                 cLS.top = Math.max(vCCliRect.top - cLCCliRect.top, 0) + 'px';
                 cLS.left = vCCliRect.left - cLCCliRect.left + 'px';
                 
                 
-                // 一定的时间之内，同步一次位置
+                // Within a certain period of time, synchronize the position once
                 PopVideo.all.push(this);
                 
                 if (!PopVideo.timerId) {
@@ -2117,18 +2121,18 @@
                     }, 1500);
                 };
 
-                // 调整窗口监控
+                // Adjust window monitoring
                 this.wResizeListener = function () {
                     self.followControlLayer();
                 };
                 
                 window.addEventListener('resize', this.wResizeListener, true);
 
-                // 全屏事件监听
+                // fullscreen event monitoring
                 this.fullscreenchangeListener = function () {
-                    // 退出全屏
+                    // exit Fullscreen
                     var fsE = document[support.fullscreenElement];
-                    // console.log('全屏元素：', fsE);
+                    // console.log('Fullscreen element: ', fsE);
                     
                     if (!fsE) {
                         self.exitFullscreen();
@@ -2140,10 +2144,10 @@
                 document.addEventListener(support.fullscreenchange, this.fullscreenchangeListener, true);
                 
                 
-                // 提升到顶层
+                // promoted to the top
                 this.setZIndex();
                 
-                // 关灯
+                // turn off the lights
                 if (prefs.popVideo.lightOff.enabled) {
                     this.lightOff();
                 };
@@ -2154,7 +2158,7 @@
                     this.pin();
                 };
                 
-                // 最大化
+                // maximize
                 if (prefs.popVideo.maximize) {
                     this.maximize();
                 };
@@ -2174,7 +2178,7 @@
                 var video = this.video;
                 var vS = video.style;
                 
-                // firefox 会将全屏的元素自动fixed处理，然后拉伸
+                // firefox will automatically fix the full screen element and then stretch it
 /*              :-moz-full-screen:not(:root) {
                     -moz-box-sizing: border-box !important;
                     background: none repeat scroll 0 0 #000000;
@@ -2193,9 +2197,10 @@
                     z-index: 2147483647 !important; 
                 } */
                 
-                // chrome 只有当全屏元素是iframe的时候才会做fixed处理，并且拉伸
-                // 其他元素的时候，当元素为非绝对定位流的时候会全屏居中，绝对定位流时以屏幕左上角为原点定位
-/*              video:-webkit-full-screen {
+                // chrome only does fixed processing when the full-screen element is an iframe, and stretches it
+                // For other elements, when the element is a non-absolute positioning flow, it will be centered on the full screen, and when the absolute positioning flow is positioned, it will be positioned with the upper left corner of the screen as the origin
+                 /*           
+                  video:-webkit-full-screen {
                   width: 100%;
                   height: 100%;
                 } 
@@ -2233,7 +2238,7 @@
                 vS.setProperty('width', document.body.clientWidth+'px', 'important');
                 vS.setProperty('z-index', 2147483647, 'important');
                 
-                // 标记全屏状态中
+                // mark fullscreen
                 this.isFullscreen = true; 
             },
 
@@ -2244,7 +2249,7 @@
                 var controlLayer = this.controlLayer;
                 controlLayer.classList.add('fv-p-v-control-layer_maximized');
                 
-                // 去掉滚动条
+                // remove scrollbar
                 var style = document.createElement('style');
                 style.type = 'text/css';
                 style.textContent = getMStr(function () {
@@ -2261,9 +2266,9 @@
                 var cLS = controlLayer.style;
                 var cBCRect = controlLayer.getBoundingClientRect();
                 
-                // 备份数据，等下还原用
+                // Backup data, restore it later
                 this.maximizeBackup = {
-                    pinned: this.pinned,// 备份之前的状态
+                    pinned: this.pinned,// Backup previous state
                     style: style,
                     height: cLS.height,
                     width: cLS.width,
@@ -2284,7 +2289,7 @@
                 
                 fitScreen();
                 
-                // 固定
+                // fixed
                 if (this.pinned) {
                     if (!this.fixedPin) {
                         this.unpin();
@@ -2320,7 +2325,7 @@
                 
                 mBackup.style.parentNode.removeChild(mBackup.style);
                 
-                // 还原最大化前的固定状态
+                // Restore the fixed state before maximization
                 if (mBackup.pinned) {
                     if (!this.fixedPin) {
                         this.unpin();
@@ -2342,13 +2347,13 @@
                 };
             },
 
-            beforePin: function () {// pin的时候确保不要pin到可视范围外面去。
+            beforePin: function () {// When pinning, make sure not to pin out of the visible range.
                 var controlLayer = this.controlLayer;
                 var cLS = controlLayer.style;
                 
                 var wSize = getWindowSize();
                 
-                // 如果pin的时候，标题栏不在浏览器窗口，调整top 
+                // If the title bar is not in the browser window when pinning, adjust the top 
                 var cLBCRect = controlLayer.getBoundingClientRect();
 
                 if (cLBCRect.top < 0) {
@@ -2372,9 +2377,9 @@
                 var controlLayer = this.controlLayer;
                 var cLS = controlLayer.style;
                 
-                // 针对iframe video audio 元素，直接设置fixed获取更好的效果
+                // For the iframe video audio element, directly set fixed to get better results
                 if (this.fixedPin) {
-                    this.pinData = {}; // 备份数据
+                    this.pinData = {}; // backup data
                     
                     var cLBCRect = controlLayer.getBoundingClientRect();
                     cLS.position = 'fixed';
@@ -2425,7 +2430,7 @@
                 };
             },
             togglePin: function () {
-                if (this.maximized) {// 最大化的时候，先保存状态，退出后在进行切换
+                if (this.maximized) {// When maximizing, save the state first, and then switch after exiting
                     this.cCommandP.classList[(this.maximizeBackup.pinned = !this.maximizeBackup.pinned) ? 'add' : 'remove']('fv-p-v-control-command-selected');
                     return;
                 };
@@ -2472,27 +2477,27 @@
             },
 
             restore: function (close) {
-                // 从所有列表中删除自己
+                // remove yourself from all lists
                 PopVideo.all.splice(PopVideo.all.indexOf(this), 1);
                 
                 var video = this.video;
                 
-                this.unpin();// 解除scroll监听
+                this.unpin();// Cancel the scroll listener
 
-                this.exitMaximize();// 解除resize监听
+                this.exitMaximize();// Release the resize listener
                 
-                // 移除各种监听
+                // Remove various monitors
                 this.cLObserver.disconnect();
                 
                 window.removeEventListener('resize', this.wResizeListener, true);
                 mouseEventListener.remove('mouseenter', video, this.videoEnterHandler);
                 document.removeEventListener(support.fullscreenchange, this.fullscreenchangeListener, true);
                 
-                // 移除dom
+                // remove dom
                 this.fixedOverlayer.parentNode.removeChild(this.fixedOverlayer);
                 this.controlLayer.parentNode.removeChild(this.controlLayer);
                 
-                // 还原video相关的domstyle;
+                // Restore video-related domstyle;
                 
                 var vS = video.style;
                 video.controls = this.vOriControls;
@@ -2501,9 +2506,9 @@
                 for (var pro in vOriStyle) {
                     if (!vOriStyle.hasOwnProperty(pro)) continue;
                     // console.log(pro);
-                    // chrome 用setProperty覆盖style上原有的值上存在important声明的时候
-                    // 设置的值也必须有important声明，否则设置不上，并且就算有important声明，setProperty传递null或空字符串时，也无法删除原值。
-                    //removeProperty移除有 important声明的时候，组合值必须一个一个移除。比如 removeProperty('padding') 无效，需要单独移除每个padding
+                    // When chrome uses setProperty to overwrite the original value on the style, when there is an important statement
+                    // The set value must also have an important statement, otherwise it cannot be set, and even if there is an important statement, when setProperty passes null or an empty string, the original value cannot be deleted。
+                    // When removeProperty removes important declarations, the combined values must be removed one by one. For example, removeProperty('padding') is invalid, each padding needs to be removed separately
                     
                     vS.removeProperty(pro);
                     vS.setProperty(pro, vOriStyle[pro][0], vOriStyle[pro][1]);
@@ -2511,7 +2516,7 @@
                 video.classList.remove('fv-p-v-video');
                 
                 
-                // 移除popVideo标记
+                // remove popVideo tag
                 delete video.fvPopVideo;
                 
                 if (this.vPEIsObject) {
@@ -2521,7 +2526,7 @@
                     this.vCEIsPlugin.classList.remove('fv-p-v-video-child-plugin');
                 };
 
-                // 还原video的祖先元素们的样式
+                // Reverts the styles of video's ancestor elements
                 var ancestors = this.ancestors;
                 
                 ancestors.forEach(function (ancestor) {
@@ -2541,16 +2546,16 @@
                 });
                 
 
-                // 还原特殊修正
+                // revert special modifiers
                 if (this.removePopVideoFix) {
                     this.removePopVideoFix();
                 };
                 
-                // 是否是直接关闭视频
+                // Whether to close the video directly
                 if (close) {
                     new CloseVideo(video);
                 } else {
-                    // 平滑滚动到视频处
+                    // Smooth scroll to video
                     this.smoothScrollIntoView(video);
                 };
                 
@@ -2566,7 +2571,7 @@
                 this.video.style.setProperty('z-index', PopVideo.maxIndex ++, 'important');
             },
             followControlLayer: function () {
-                // 全屏状态禁止调整video的大小
+                // Fullscreen state prohibits resizing the video
                 if (this.isFullscreen) return;
                 
                 var video = this.video;
@@ -2589,7 +2594,7 @@
                 var cLCRect = getContentClientRect(controlLayer);
                 var vCRect = getContentClientRect(video);
                 
-                // 使用top left 修正到和之前的位置一样
+                // Use top left to correct to the same position as before
                 if (!video.style.transform) {
                     vS.setProperty('top', parseFloat(vS.top) + cLCRect.top - vCRect.top + 'px', 'important');
                     vS.setProperty('left', parseFloat(vS.left) + cLCRect.left - vCRect.left + 'px', 'important');
@@ -2900,13 +2905,13 @@
                 parentEle.appendChild(style);
                 parentEle.appendChild(style2);
 
-                style2.disabled = true;// style添加到文档之后disabled属性才有效
+                style2.disabled = true;// The disabled attribute is only valid after the style is added to the document
                 
             },
         };
 
 
-        // 关闭视频之后的占位符
+        // placeholder after closing video
         function CloseVideo(plugin) {
             this.plugin = plugin;
             this.init();
@@ -2919,7 +2924,7 @@
                 
                 var plugin = this.plugin;
             
-                // 如果父元素是object，那么隐藏object元素
+                // If the parent element is object, then hide the object element
                 var pluginP;
                 if ((pluginP = plugin.parentElement) && pluginP.nodeName == 'OBJECT') {
                     plugin = pluginP;
@@ -2930,10 +2935,10 @@
                 
                 var pCStyle = getComputedStyle(plugin);
                 
-                // 设置一个占位符
+                // set a placeholder
                 var placeholder = document.createElement('fvspan');
                 placeholder.className = 'fv-c-v-placeholder';
-                placeholder.title = "点击还原视频";
+                placeholder.title = "Click to restore video";
                 
                 placeholder.innerHTML = getMStr(function () {
                     var innerHTML;
@@ -2943,7 +2948,7 @@
                 }).innerHTML;
                 
 
-                // 复制样式
+                // copy style
                 var phStyle = placeholder.style;
                 var pros = [// 尽量拆开写，浏览器对复合值的返回不一样
                     'display', 'cssFloat',
@@ -2960,34 +2965,34 @@
                     phStyle[pro] = pCStyle[pro];
                 });
                 
-                // iframe,audio,video默认display inline。但是普通元素的的话inline设置height width是无效的
+                // iframe, audio, and video display inline by default. But for ordinary elements, inline setting height width is invalid
                 if (phStyle.display == 'inline') {
                     phStyle.display = 'inline-block';
                 };
                 
-                // 如果是static定位那么改成relative定位，为占位符的内部关闭按钮做包含块
+                // If it is static positioning, then change it to relative positioning, and make a containing block for the inner close button of the placeholder
                 if (phStyle.position = 'static') {
                     phStyle.position = 'relative';
                     phStyle.zIndex = 'auto';
                 };
                 
                 
-                // 监听占位符的点击操作
+                // Listen for clicks on placeholders
                 placeholder.addEventListener('click', function (e) {
                     placeholder.parentNode.removeChild(placeholder);
                     
                     var target = e.target;
-                    if (target == this) {//显示视频
+                    if (target == this) {// show video
                         plugin.classList.remove('fv-c-v-hide-plugin');
                         if (oSrc) {// iframe
                             plugin.src = oSrc
                         };
-                    } else {// 移除视频
+                    } else {// remove video
                         plugin.parentNode.removeChild(plugin);
                     };
                 }, true);
                 
-                // 插入占位符
+                // insert placeholder
                 var pluginNS = plugin.nextSibling;
                 var pluginP = plugin.parentNode;
                 if (pluginNS) {
@@ -2996,12 +3001,12 @@
                     pluginP.appendChild(placeholder);
                 };
 
-                // 隐藏插件
+                // hide plugin
                 var pNName = plugin.nodeName;
                 var oSrc;
                 plugin.classList.add('fv-c-v-hide-plugin');
                 
-                if (/^(?:VIDEO|AUDIO)$/.test(pNName)) {// video audio标签，暂停播放
+                if (/^(?:VIDEO|AUDIO)$/.test(pNName)) {// video audio tab, pause playback
                     plugin.pause();
                 } else if (pNName == 'IFRAME') {
                     oSrc = plugin.src;
@@ -3068,7 +3073,7 @@
             },
         };
     
-        // 浮动工具栏
+        // floating toolbar
         function FloatBar() {
             this.init();
         };
@@ -3081,7 +3086,7 @@
             init: function () {
                 this.addStyle();
 
-                // 浮动工具栏
+                // floating toolbar
                 var floatBar = document.createElement('fvspan');
                 this.floatBar = floatBar;
                 floatBar.id = 'fv-f-b-container';
@@ -3168,7 +3173,7 @@
                     
                     child.title = titleMap[bName];
                     
-                    // 相关命令保存在dom上
+                    // Related commands are saved on the dom
                     child.dataset.clickCommand = bName;
                     
                 });
@@ -3210,7 +3215,7 @@
                     
                     var plugin = self.target;
                     
-                    // 如果点击按钮的时候，插件被删除了，或者被隐藏了
+                    // If the plugin is deleted or hidden when the button is clicked
                     if (!document.contains(plugin) || getComputedStyle(plugin).display == 'none') {
                         self.hide();
                         return;
@@ -3221,13 +3226,13 @@
                     // console.log(bName);
                     
                     switch (bName) {
-                        // 点击了弹出命令按钮
+                        // clicked the popup command button
                         case 'pop':
                             self.hide();
                             
                             new PopVideo(plugin);
                         break;
-                        // 点击了重载命令按钮
+                        // clicked the reload command button
                         case 'reload':
                              self.hide();
                              
@@ -3244,7 +3249,7 @@
                                 reinitPlugin(plugin);
                              };
                         break;
-                        // 点击了关闭命令按钮
+                        // Clicked the close command button
                         case 'close':
                             self.hide();
                             
@@ -3259,7 +3264,7 @@
                     
                 }, true);
                 
-                // 监听mouse进出
+                // Monitor mouse in and out
                 mouseEventListener.add('mouseleave', floatBar, function (e) {
                     self.hideTimerId = setTimeout(function () {
                         self.hide();
@@ -3291,7 +3296,7 @@
                 fbs.display = 'none';
                 fbs.opacity = 0;
             },
-            downloadable: function () {// 如果可下载，那么显示下载按钮
+            downloadable: function () {// Show download button if downloadable
                 var plugin = this.target;
                 var pNName = plugin.nodeName;
                 
@@ -3378,7 +3383,7 @@
                     
                     qFVars = convertFVars2Obj(qFVars);
 
-                    // 合并参数
+                    // merge parameters
                     for (key in fVars) {
                         if (!fVars.hasOwnProperty(key)) continue;
                         
@@ -3407,18 +3412,18 @@
                     if (youkuId) {
                         downloadUrl = 'http://v.youku.com/v_show/id_' + youkuId + '.html';
                     };
-                } else if (/\.qq\.com/.test(srcOrigin)) {// 腾讯视频
+                } else if (/\.qq\.com/.test(srcOrigin)) {// Tencent Video
                     qqVid = fVars.vid;
                     
                     if (qqVid) {
                         downloadUrl = 'http://static.video.qq.com/TPout.swf?vid=' + qqVid;
                     };
-                } else if (/player\.yinyuetai\.com/.test(srcOrigin)) {// 音悦台
+                } else if (/player\.yinyuetai\.com/.test(srcOrigin)) {// Yinyuetai
                     
                     if (yytId = src.match(/^https?:\/\/player\.yinyuetai\.com\/video\/swf\/(\d+)\//)) {
                         downloadUrl = 'http://v.yinyuetai.com/video/' + yytId[1];
                     };
-                } else if (/s\.yytcdn\.com/.test(srcOrigin)) {// 音悦台本站
+                } else if (/s\.yytcdn\.com/.test(srcOrigin)) {// Yinyuetai website
                     if (yytId = fVars.videoId) {
                         downloadUrl = 'http://v.yinyuetai.com/video/' + yytId;
                     };
@@ -3448,14 +3453,14 @@
                 var setPosition = {
                     top: function () {
                         var top = targetPosi.top + scrolled.y;
-                        if (targetPosi.top + offsetY < 0) {//满足图标被遮住的条件.
+                        if (targetPosi.top + offsetY < 0) {// Satisfy the condition that the icon is covered.
                             top = scrolled.y;
                             offsetY = 0;
                         };
                         fbs.top = top + offsetY + 'px';
                     },
                     right: function () {
-                        var rRight = windowSize.width - targetPosi.right;// 目标的右边到浏览器右边的距离
+                        var rRight = windowSize.width - targetPosi.right;// The distance from the right side of the target to the right side of the browser
                         var right =  rRight - scrolled.x;
                         if (rRight - offsetX < 0) {
                             right = -scrolled.x;
@@ -3464,7 +3469,7 @@
                         fbs.right = right - offsetX + 'px';
                     },
                     bottom: function () {
-                        var rBottom = windowSize.height - targetPosi.bottom;// 目标的下边到浏览器下边的距离
+                        var rBottom = windowSize.height - targetPosi.bottom;// The distance from the bottom of the target to the bottom of the browser
                         var bottom = rBottom - scrolled.y;
                         if (rBottom - offsetY < 0) {
                             bottom = -scrolled.y;
@@ -3576,10 +3581,10 @@
                 };
                 this.targetLeaveHandler = targetLeaveHandler;
 
-                // chrome的鼠标事件发生顺序坑爹，鼠标从a进入b，a(leave) > b(enter) > a(out) > b(over)
+                // The sequence of mouse events in chrome is cheating, the mouse goes from a to b, a(leave) > b(enter) > a(out) > b(over)
                 // firefox a(out) > a(leave) > b(over) > b(enter)
                 
-                // 注册鼠标离开插件后隐藏浮动栏
+                // Register the mouse to hide the floating bar after leaving the plugin
                 mouseEventListener.add('mouseleave', target, targetLeaveHandler);
 
                 clearTimeout(this.hideTimerId);
@@ -3603,13 +3608,13 @@
                 style.type = 'text/css';
                 style.id = 'flash-viewer-float-bar';
 
-                /*z-index的最大值为：2147483647*/
+                /*z-index (The maximum value of)：2147483647*/
                 style.textContent = getMStr(function () {
                     var cssText;
-                    // 在wmode=window 的 flash上放置元素的话，firefox只能绘制不含有透明度的background的元素，
-                    // 比如border-radius，box-shadow都不能正确绘制
-                    // 如果这个元素有子元素，并且所需绘制范围在这个元素的background范围内，那么子元素就能正确被绘制
-                    // chrome 不存在以上问题
+                   // If elements are placed on the flash with wmode=window, firefox can only draw background elements without transparency,
+                   // For example, border-radius and box-shadow cannot be drawn correctly
+                   // If this element has child elements, and the required drawing range is within the background range of this element, then the child elements can be drawn correctly
+                   // chrome does not have the above problems
                     /*
                         #fv-f-b-container {
                             position: absolute;
@@ -3727,7 +3732,7 @@
         };
         
         var plugFloatBar;
-        // 监控鼠标是否摸到了插件
+        // Monitor whether the mouse touches the plugin
         document.addEventListener('mouseover', function (e) {
             var target = e.target;
             var tNName = target.nodeName;
@@ -3737,15 +3742,15 @@
                 tNName = 'VIDEO';
             }
             
-            // 可弹出元素
+            // popup element
             if (!/^(?:OBJECT|EMBED|VIDEO|AUDIO|IFRAME)$/.test(tNName)) return;
             
             // console.log(target);
             
-            // popVideo中。
+            // popVideo
             if (target.fvPopVideo) return;
             
-            // 如果是插件判断是否为flash插件
+            // If it is a plugin, determine whether it is a flash plugin
             if (/^(?:OBJECT|EMBED)$/.test(tNName)) {
                 // console.log(target);
                 
@@ -3761,7 +3766,7 @@
                     };
                 };
 
-                // 如果flash太小，一般不是引用视频，不出现工具栏
+                // If the flash is too small, it is generally not a reference video, and the toolbar does not appear
                 var cCRect = getContentClientRect(target);
                 if (!(cCRect.width >= prefs.floatBar.minSizeLimit.width && cCRect.height >= prefs.floatBar.minSizeLimit.height)) {
                     // console.log(cCRect);
@@ -3781,29 +3786,29 @@
     };
 
     
-    // 如果发生通信的话，需要一个独一无二的ID
+    // If communication occurs, a unique ID is required
     var messageID = Math.random().toString();
     
-    // 把指定函数丢到真实环境中执行，规避一切脚本管理器乱七八糟的执行环境产生的奇葩Bug，
-    // 特别是chrome上的那个坑爹tampermonkey。。。
+    // Throw the specified function into the real environment for execution, avoiding all the weird bugs caused by the messy execution environment of the script manager,
+    // Especially the cheating tampermonkey on chrome.
     function runInPageContext(fn) {
         if (typeof fn !== 'function') {
             return;
         };
         
-        // 创建一个脚本插入到pageContext执行
+        // Create a script inserted into the pageContext to execute
         var script = document.createElement('script');
         script.type = 'text/javascript';
         
-        // 去掉函数名，防止污染全局环境。
+        // Remove the function name to prevent polluting the global environment.
         var sContent = ';(' + fn.toString().replace(/[^(]+/, 'function ') + ')(' + JSON.stringify(messageID) + ');';
         
-        // console.log('执行的脚本实际内容\n', sContent);
+        // console.log('The actual content of the executed script\n', sContent);
         
         script.textContent = sContent;
 
-        // 检测html元素是否可访问
-        // scriptish @run-at document-start时，html元素在第一时间不可访问
+        // Check if html element is accessible
+        // scriptish @run-at document-start时，htmlElement is not accessible in the first place
         var de = document.documentElement;
         
         if (de) {
